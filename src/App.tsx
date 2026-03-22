@@ -32,7 +32,9 @@ import {
   Save,
   AlertCircle,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  Youtube,
+  Video
 } from 'lucide-react';
 import { 
   db, 
@@ -54,7 +56,12 @@ import {
   removeSubjectFromDb,
   getQuestions,
   addQuestionToDb,
-  removeQuestionFromDb
+  removeQuestionFromDb,
+  getNotes,
+  getSubjectNotes,
+  addNoteToDb,
+  removeNoteFromDb,
+  Note
 } from './firebase';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { 
@@ -593,6 +600,15 @@ function App() {
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const lastScrollY = useRef(0);
 
+  // Notes State
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [modulesWithNotes, setModulesWithNotes] = useState<Set<string>>(new Set());
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [newNoteName, setNewNoteName] = useState('');
+  const [newNoteType, setNewNoteType] = useState<'pdf' | 'link' | 'video'>('pdf');
+  const [newNoteUrl, setNewNoteUrl] = useState('');
+  const [isNoteUploading, setIsNoteUploading] = useState(false);
+
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -819,6 +835,77 @@ function App() {
 
   const handleRemoveQuestion = async (id: string) => {
     await removeQuestionFromDb(id);
+  };
+
+  // Notes Logic
+  useEffect(() => {
+    if (selectedSubject) {
+      const unsub = getSubjectNotes(selectedSubject, (subjectNotes) => {
+        const moduleIds = new Set(subjectNotes.map(n => n.moduleId));
+        setModulesWithNotes(moduleIds);
+      });
+      return () => unsub();
+    } else {
+      setModulesWithNotes(new Set());
+    }
+  }, [selectedSubject]);
+
+  useEffect(() => {
+    if (selectedSubject && selectedModule && contentType === 'notes') {
+      const unsub = getNotes(selectedSubject, selectedModule.toString(), setNotes);
+      return () => unsub();
+    } else {
+      setNotes([]);
+    }
+  }, [selectedSubject, selectedModule, contentType]);
+
+  const handleNoteFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) {
+      alert('File size exceeds 1MB. Please use a Drive link instead.');
+      return;
+    }
+
+    setIsNoteUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      setNewNoteUrl(base64);
+      setNewNoteType('pdf');
+      setIsNoteUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddNote = async () => {
+    if (!newNoteName.trim() || !newNoteUrl.trim() || !selectedSubject || !selectedModule) return;
+
+    let finalType = newNoteType;
+    if (newNoteType === 'link') {
+      const isYoutube = newNoteUrl.includes('youtube.com') || newNoteUrl.includes('youtu.be');
+      if (isYoutube) {
+        finalType = 'video';
+      }
+    }
+
+    await addNoteToDb({
+      subjectId: selectedSubject,
+      moduleId: selectedModule.toString(),
+      name: newNoteName,
+      type: finalType,
+      url: newNoteUrl,
+      createdAt: new Date().toISOString()
+    });
+
+    setNewNoteName('');
+    setNewNoteUrl('');
+    setIsAddingNote(false);
+  };
+
+  const handleRemoveNote = async (id: string) => {
+    await removeNoteFromDb(id);
   };
 
   const resetSelection = () => {
@@ -1123,7 +1210,7 @@ function App() {
                       }`}
                     >
                       {m.name}
-                      {isFOC && m.id === 2 && m.ready && (
+                      {(modulesWithNotes.has(m.id.toString()) || (isFOC && m.id === 2 && m.ready)) && (
                         <div className="absolute -top-3 -right-3 px-2 py-1 bg-emerald-600 text-white text-[8px] font-black uppercase tracking-widest rounded-lg shadow-lg flex items-center gap-1">
                           Ready
                         </div>
@@ -1177,7 +1264,221 @@ function App() {
     );
   }
 
-  // Notes View (Placeholder)
+  // Notes View
+  if (contentType === 'notes' && selectedModule) {
+    return (
+      <div className="min-h-screen bg-[#F9F9F9] flex flex-col">
+        <div className="flex-1 p-6 md:p-12">
+          <div className="max-w-4xl mx-auto">
+            <button 
+              onClick={() => setSelectedModule(null)}
+              className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 font-medium mb-8 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Back to Module Selection
+            </button>
+            
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-3xl font-black text-zinc-900 tracking-tight mb-2">
+                  {currentSubject?.name}
+                </h1>
+                <p className="text-zinc-500 font-medium">Module {selectedModule} Study Notes</p>
+              </div>
+              {user.role === 'admin' && (
+                <button
+                  onClick={() => setIsAddingNote(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200"
+                >
+                  <Plus className="w-4 h-4" /> Add Note
+                </button>
+              )}
+            </div>
+
+            {notes.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {notes.map((note) => (
+                  <motion.div
+                    key={note.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white border border-zinc-200 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-zinc-50 rounded-xl flex items-center justify-center text-zinc-400">
+                        {note.type === 'pdf' ? <FileText className="w-6 h-6" /> : note.type === 'video' ? <Youtube className="w-6 h-6 text-rose-500" /> : <ExternalLink className="w-6 h-6" />}
+                      </div>
+                      <div className="max-w-[150px] sm:max-w-[200px]">
+                        <h3 className="font-bold text-zinc-900 truncate" title={note.name}>{note.name}</h3>
+                        <p className="text-[10px] text-zinc-400 uppercase font-black tracking-widest">
+                          {note.type === 'pdf' ? 'PDF Document' : note.type === 'video' ? 'YouTube Video' : 'Drive Link'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={note.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3 bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-colors shadow-lg shadow-zinc-100"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </a>
+                      {user.role === 'admin' && (
+                        <button
+                          onClick={() => handleRemoveNote(note.id!)}
+                          className="p-3 text-zinc-300 hover:text-rose-500 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white border border-zinc-200 rounded-3xl p-8 sm:p-12 text-center">
+                <FileText className="w-16 h-16 text-zinc-200 mx-auto mb-6" />
+                <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mb-2">No Notes Yet</h2>
+                <p className="text-zinc-500">We are currently preparing the study notes for {currentSubject?.name} Module {selectedModule}.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Add Note Modal */}
+        <AnimatePresence>
+          {isAddingNote && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zinc-900/40 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Add New Note</h2>
+                  <button onClick={() => setIsAddingNote(false)} className="p-2 hover:bg-zinc-100 rounded-xl transition-colors">
+                    <X className="w-5 h-5 text-zinc-400" />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Note Name</label>
+                    <input
+                      type="text"
+                      value={newNoteName}
+                      onChange={(e) => setNewNoteName(e.target.value)}
+                      placeholder="e.g. Module 1 Summary"
+                      className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:ring-2 focus:ring-zinc-900 focus:border-transparent outline-none transition-all font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Note Type</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <button
+                        onClick={() => {
+                          setNewNoteType('pdf');
+                          setNewNoteUrl('');
+                        }}
+                        className={`p-4 rounded-2xl border-2 font-bold transition-all flex flex-col items-center justify-center gap-1 ${
+                          newNoteType === 'pdf' ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-white border-zinc-100 text-zinc-400 hover:border-zinc-200'
+                        }`}
+                      >
+                        <FileText className="w-4 h-4" /> <span className="text-[8px]">PDF</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setNewNoteType('link');
+                          setNewNoteUrl('');
+                        }}
+                        className={`p-4 rounded-2xl border-2 font-bold transition-all flex flex-col items-center justify-center gap-1 ${
+                          newNoteType === 'link' ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-white border-zinc-100 text-zinc-400 hover:border-zinc-200'
+                        }`}
+                      >
+                        <ExternalLink className="w-4 h-4" /> <span className="text-[8px]">Link</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setNewNoteType('video');
+                          setNewNoteUrl('');
+                        }}
+                        className={`p-4 rounded-2xl border-2 font-bold transition-all flex flex-col items-center justify-center gap-1 ${
+                          newNoteType === 'video' ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-white border-zinc-100 text-zinc-400 hover:border-zinc-200'
+                        }`}
+                      >
+                        <Youtube className="w-4 h-4" /> <span className="text-[8px]">YouTube</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">
+                      {newNoteType === 'pdf' ? 'PDF File' : newNoteType === 'video' ? 'YouTube Link' : 'Drive Link'}
+                    </label>
+                    {newNoteType === 'pdf' ? (
+                      <div className="space-y-3">
+                        <button
+                          onClick={() => document.getElementById('note-file-input')?.click()}
+                          disabled={isNoteUploading}
+                          className="w-full p-4 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-zinc-400 hover:text-zinc-600 hover:border-zinc-400 transition-all group"
+                        >
+                          {isNoteUploading ? (
+                            <div className="w-6 h-6 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <Upload className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                              <span className="text-[10px] font-bold uppercase tracking-widest">
+                                {newNoteUrl ? 'File Selected' : 'Choose PDF'}
+                              </span>
+                            </>
+                          )}
+                        </button>
+                        <input
+                          id="note-file-input"
+                          type="file"
+                          accept="application/pdf"
+                          onChange={handleNoteFileUpload}
+                          className="hidden"
+                        />
+                        {newNoteUrl && (
+                          <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest text-center">
+                            PDF Ready to upload
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <input
+                        type="url"
+                        value={newNoteUrl}
+                        onChange={(e) => setNewNoteUrl(e.target.value)}
+                        placeholder={newNoteType === 'video' ? "https://youtube.com/watch?v=..." : "https://drive.google.com/..."}
+                        className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:ring-2 focus:ring-zinc-900 focus:border-transparent outline-none transition-all font-medium"
+                      />
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handleAddNote}
+                    disabled={!newNoteName.trim() || !newNoteUrl.trim() || isNoteUploading}
+                    className="w-full py-5 bg-zinc-900 text-white rounded-2xl font-bold text-sm uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200 disabled:opacity-50 mt-4"
+                  >
+                    Add Note
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <Footer />
+      </div>
+    );
+  }
+
+  // Notes View (Placeholder/Module Selection)
   if (contentType === 'notes') {
     return (
       <div className="min-h-screen bg-[#F9F9F9] flex flex-col">

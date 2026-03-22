@@ -27,6 +27,16 @@ export interface AnswerData {
   images: string[];
 }
 
+export interface Note {
+  id?: string;
+  subjectId: string;
+  moduleId: string;
+  name: string;
+  type: 'pdf' | 'link' | 'video';
+  url: string;
+  createdAt: string;
+}
+
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -213,5 +223,48 @@ export const removeQuestionFromDb = async (id: string) => {
     await deleteDoc(doc(db, 'questions', id));
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `questions/${id}`);
+  }
+};
+
+// Notes Management
+export const getNotes = (subjectId: string, moduleId: string, callback: (notes: Note[]) => void) => {
+  const notesCol = collection(db, 'notes');
+  return onSnapshot(notesCol, (snapshot) => {
+    const notes = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() } as Note))
+      .filter(n => n.subjectId === subjectId && n.moduleId === moduleId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    callback(notes);
+  }, (error) => {
+    handleFirestoreError(error, OperationType.LIST, 'notes');
+  });
+};
+
+export const getSubjectNotes = (subjectId: string, callback: (notes: Note[]) => void) => {
+  const notesCol = collection(db, 'notes');
+  return onSnapshot(notesCol, (snapshot) => {
+    const notes = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() } as Note))
+      .filter(n => n.subjectId === subjectId);
+    callback(notes);
+  }, (error) => {
+    handleFirestoreError(error, OperationType.LIST, 'notes');
+  });
+};
+
+export const addNoteToDb = async (note: Note) => {
+  try {
+    const docRef = doc(collection(db, 'notes'));
+    await setDoc(docRef, { ...note, id: docRef.id });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, 'notes');
+  }
+};
+
+export const removeNoteFromDb = async (id: string) => {
+  try {
+    await deleteDoc(doc(db, 'notes', id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `notes/${id}`);
   }
 };

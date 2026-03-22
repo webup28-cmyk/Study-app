@@ -53,9 +53,9 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && (
-        get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == 'admin' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.token.email)) && get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == 'admin') ||
         (request.auth.token.email == "bilalsabu437@gmail.com" && request.auth.token.email_verified == true) ||
-        (request.auth.token.email == "bilalsabu3@gmail.com")
+        (request.auth.token.email == "bilalsabu3@gmail.com" && request.auth.token.email_verified == true)
       );
     }
 
@@ -72,36 +72,52 @@ service cloud.firestore {
     }
 
     function isValidUser(data) {
-      return hasRequiredFields(['email', 'name', 'role']) &&
+      return hasOnlyAllowedFields(['email', 'name', 'role']) &&
+             hasRequiredFields(['email', 'name', 'role']) &&
              data.email is string &&
              data.name is string && data.name.size() < 100 &&
              data.role in ['admin', 'student'];
     }
 
     function isValidSubject(data) {
-      return hasRequiredFields(['name', 'icon', 'color']) &&
+      return hasOnlyAllowedFields(['id', 'name', 'icon', 'color', 'deleted']) &&
+             hasRequiredFields(['name', 'icon', 'color']) &&
              data.name is string && data.name.size() < 100 &&
              data.icon is string &&
              data.color is string;
     }
 
     function isValidProgress(data) {
-      return (!('studied' in data) || data.studied is list) &&
+      return hasOnlyAllowedFields(['studied', 'favorites']) &&
+             (!('studied' in data) || data.studied is list) &&
              (!('favorites' in data) || data.favorites is list);
     }
 
     function isValidAnswer(data) {
-      return (!('text' in data) || (data.text is string && data.text.size() < 10000)) &&
+      return hasOnlyAllowedFields(['id', 'text', 'images']) &&
+             (!('text' in data) || (data.text is string && data.text.size() < 10000)) &&
              (!('images' in data) || (data.images is list && data.images.size() <= 10));
     }
 
     function isValidQuestion(data) {
-      return hasRequiredFields(['text', 'subjectId', 'series', 'part', 'number']) &&
+      return hasOnlyAllowedFields(['id', 'text', 'subjectId', 'series', 'part', 'number']) &&
+             hasRequiredFields(['text', 'subjectId', 'series', 'part', 'number']) &&
              data.text is string && data.text.size() < 1000 &&
              data.subjectId is string &&
              data.series is string &&
              data.part in ['A', 'B'] &&
              data.number is number;
+    }
+
+    function isValidNote(data) {
+      return hasOnlyAllowedFields(['id', 'subjectId', 'moduleId', 'name', 'type', 'url', 'createdAt']) &&
+             hasRequiredFields(['subjectId', 'moduleId', 'name', 'type', 'url', 'createdAt']) &&
+             data.subjectId is string &&
+             data.moduleId is string &&
+             data.name is string && data.name.size() < 100 &&
+             data.type in ['pdf', 'link', 'video'] &&
+             data.url is string && data.url.size() < 2000000 &&
+             data.createdAt is string;
     }
 
     // ===============================================================
@@ -134,6 +150,12 @@ service cloud.firestore {
     match /questions/{questionId} {
       allow read: if true;
       allow write: if isAdmin() && isValidQuestion(request.resource.data);
+    }
+
+    match /notes/{noteId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidNote(request.resource.data);
+      allow delete: if isAdmin();
     }
   }
 }

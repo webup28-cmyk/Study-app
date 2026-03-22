@@ -39,6 +39,33 @@
         "text": { "type": "string" },
         "images": { "type": "array", "items": { "type": "string" } }
       }
+    },
+    "Question": {
+      "title": "Question",
+      "description": "Stores question text and metadata.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "series": { "type": "string" },
+        "part": { "type": "string", "enum": ["A", "B"] },
+        "number": { "type": "integer" }
+      },
+      "required": ["text", "subjectId", "series", "part", "number"]
+    },
+    "Note": {
+      "title": "Module Note",
+      "description": "Stores a note for a specific module, can be a PDF or a link.",
+      "type": "object",
+      "properties": {
+        "subjectId": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["pdf", "link", "video"] },
+        "url": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["subjectId", "moduleId", "name", "type", "url"]
     }
   },
   "firestore": {
@@ -57,6 +84,14 @@
     "/answers/{answerId}": {
       "schema": "Answer",
       "description": "Answers for questions, ID is a composite of subject, module, series, and question ID."
+    },
+    "/questions/{questionId}": {
+      "schema": "Question",
+      "description": "Questions for subjects."
+    },
+    "/notes/{noteId}": {
+      "schema": "Note",
+      "description": "Notes for modules."
     }
   }
 }
