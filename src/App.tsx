@@ -318,7 +318,7 @@ const QuestionCard = ({
       className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-xl transition-all duration-300 mb-8 overflow-hidden relative"
       id={`q-${id}`}
     >
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+      <div className="flex flex-col-reverse md:flex-row md:items-start justify-between gap-4 sm:gap-6 mb-8">
         <div className="flex items-start gap-4 sm:gap-5">
           <span className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-zinc-900 flex items-center justify-center text-xs sm:text-sm font-bold text-white shadow-lg">
             {number}
@@ -328,7 +328,7 @@ const QuestionCard = ({
           </h3>
         </div>
         
-        <div className="flex items-center gap-2 self-end md:self-start">
+        <div className="flex items-center gap-2 self-start md:self-start">
           <button 
             onClick={onToggleStudied}
             className={cn(
@@ -353,102 +353,99 @@ const QuestionCard = ({
       </div>
 
       <div className="space-y-6 sm:space-y-8">
-        <div className="bg-zinc-50 rounded-3xl p-4 sm:p-6 border border-zinc-100">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Answer Reference</h4>
-            {isAdmin && (
-              <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg flex items-center gap-1 uppercase tracking-wider">
-                <Shield className="w-3 h-3" /> Admin Edit Mode
-              </span>
-            )}
-          </div>
-          
-          {isAdmin ? (
-            <textarea
-              value={localText}
-              onChange={handleTextChange}
-              onFocus={() => setIsFocused(true)}
-              onBlur={handleBlur}
-              placeholder="Type the answer reference here..."
-              className="w-full min-h-[150px] bg-transparent border-none focus:ring-0 text-zinc-800 placeholder:text-zinc-300 transition-all resize-y leading-relaxed"
-            />
-          ) : (
-            <div className="text-zinc-700 leading-relaxed whitespace-pre-wrap">
-              {answer.text || <span className="text-zinc-300 italic">No answer reference provided yet.</span>}
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Visual Aids</h4>
-            <div className="flex items-center gap-4">
+        {(isAdmin || answer.text) && (
+          <div className="bg-zinc-50 rounded-3xl p-4 sm:p-6 border border-zinc-100">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Answer Reference</h4>
               {isAdmin && (
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors"
-                >
-                  <Plus className="w-4 h-4" /> Add Photo
-                </button>
+                <span className="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg flex items-center gap-1 uppercase tracking-wider">
+                  <Shield className="w-3 h-3" /> Admin Edit Mode
+                </span>
               )}
             </div>
-          </div>
-
-          <div className="flex flex-col gap-6">
-            <AnimatePresence>
-              {(answer.images || []).map((img, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.8, opacity: 0 }}
-                  className="relative group w-full rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-50 shadow-sm"
-                >
-                  <img src={img} alt="Answer attachment" className="w-full h-auto object-contain max-h-[800px]" referrerPolicy="no-referrer" />
-                  {isAdmin && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeImage(idx);
-                      }}
-                      title="Remove Image"
-                      className="absolute top-4 right-4 p-3 bg-rose-500 text-white rounded-xl shadow-lg transition-all z-10 hover:scale-110 active:scale-90"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {isAdmin && (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-32 rounded-2xl border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center gap-2 text-zinc-400 hover:text-zinc-600 hover:border-zinc-400 transition-all bg-zinc-50/50 group"
-              >
-                <div className="p-2 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                  <Upload className="w-5 h-5" />
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest">Upload Image</span>
-              </button>
-            )}
             
-            {!(answer.images?.length) && !isAdmin && (
-              <div className="w-full py-12 border-2 border-dashed border-zinc-100 rounded-3xl flex flex-col items-center justify-center text-zinc-300">
-                <ImageIcon className="w-10 h-10 mb-3 opacity-20" />
-                <span className="text-xs font-bold uppercase tracking-widest">No visual aids available</span>
+            {isAdmin ? (
+              <textarea
+                value={localText}
+                onChange={handleTextChange}
+                onFocus={() => setIsFocused(true)}
+                onBlur={handleBlur}
+                placeholder="Type the answer reference here..."
+                className="w-full min-h-[150px] bg-transparent border-none focus:ring-0 text-zinc-800 placeholder:text-zinc-300 transition-all resize-y leading-relaxed"
+              />
+            ) : (
+              <div className="text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                {answer.text}
               </div>
             )}
           </div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageUpload}
-            multiple
-            accept="image/*"
-            className="hidden"
-          />
-        </div>
+        )}
+
+        {(isAdmin || (answer.images && answer.images.length > 0)) && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Visual Aids</h4>
+              <div className="flex items-center gap-4">
+                {isAdmin && (
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" /> Add Photo
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-6">
+              <AnimatePresence>
+                {(answer.images || []).map((img, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.8, opacity: 0 }}
+                    className="relative group w-full rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-50 shadow-sm"
+                  >
+                    <img src={img} alt="Answer attachment" className="w-full h-auto object-contain max-h-[800px]" referrerPolicy="no-referrer" />
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImage(idx);
+                        }}
+                        title="Remove Image"
+                        className="absolute top-4 right-4 p-3 bg-rose-500 text-white rounded-xl shadow-lg transition-all z-10 hover:scale-110 active:scale-90"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {isAdmin && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-32 rounded-2xl border-2 border-dashed border-zinc-200 flex flex-col items-center justify-center gap-2 text-zinc-400 hover:text-zinc-600 hover:border-zinc-400 transition-all bg-zinc-50/50 group"
+                >
+                  <div className="p-2 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
+                    <Upload className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Upload Image</span>
+                </button>
+              )}
+            </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              multiple
+              accept="image/*"
+              className="hidden"
+            />
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -509,6 +506,24 @@ export default function AppWrapper() {
     </ErrorBoundary>
   );
 }
+
+const Footer = () => (
+  <footer className="w-full p-6 pb-12 mt-auto text-center text-zinc-500 text-sm">
+    <p>
+      Developed by Bilal Sabu
+      <span className="hidden sm:inline mx-2">•</span>
+      <br className="sm:hidden" />
+      <a 
+        href="https://bilalsabu.com" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="text-indigo-600 hover:text-indigo-700 hover:underline font-medium transition-colors"
+      >
+        Bilalsabu.com
+      </a>
+    </p>
+  </footer>
+);
 
 function App() {
   const [user, setUser] = useState<UserProfile | null>(() => {
@@ -816,47 +831,51 @@ function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#F9F9F9] flex items-center justify-center p-6">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-2xl shadow-zinc-200 border border-zinc-100"
-        >
-          <div className="flex flex-col items-center mb-8 sm:mb-10">
-            <div className="w-20 h-20 bg-zinc-900 rounded-3xl flex items-center justify-center mb-6 shadow-xl shadow-zinc-200">
-              <GraduationCap className="w-10 h-10 text-white" />
-            </div>
-            <h1 className="text-3xl font-black text-zinc-900 tracking-tight mb-2">Study Hub</h1>
-            <p className="text-zinc-400 font-medium text-center">Sign in with your Google account to access your materials and track progress.</p>
-          </div>
-
-          <button
-            onClick={handleLogin}
-            disabled={isLoginLoading}
-            className="w-full py-5 bg-zinc-900 text-white rounded-2xl font-bold text-sm uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200 disabled:opacity-50 flex items-center justify-center gap-3"
+      <div className="min-h-screen bg-[#F9F9F9] flex flex-col">
+        <div className="flex-1 flex items-center justify-center p-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-md bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-2xl shadow-zinc-200 border border-zinc-100"
           >
-            {isLoginLoading ? (
-              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-            ) : (
-              <>
-                <UserIcon className="w-5 h-5" />
-                Sign in with Google
-              </>
-            )}
-          </button>
-          
-          <p className="mt-8 text-center text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em] leading-relaxed">
-            Secure Student & Admin Access
-          </p>
-        </motion.div>
+            <div className="flex flex-col items-center mb-8 sm:mb-10">
+              <div className="w-20 h-20 bg-zinc-900 rounded-3xl flex items-center justify-center mb-6 shadow-xl shadow-zinc-200">
+                <GraduationCap className="w-10 h-10 text-white" />
+              </div>
+              <h1 className="text-3xl font-black text-zinc-900 tracking-tight mb-2">Study Hub</h1>
+              <p className="text-zinc-400 font-medium text-center">Sign in with your Google account to access your materials and track progress.</p>
+            </div>
+
+            <button
+              onClick={handleLogin}
+              disabled={isLoginLoading}
+              className="w-full py-5 bg-zinc-900 text-white rounded-2xl font-bold text-sm uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200 disabled:opacity-50 flex items-center justify-center gap-3"
+            >
+              {isLoginLoading ? (
+                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <UserIcon className="w-5 h-5" />
+                  Sign in with Google
+                </>
+              )}
+            </button>
+            
+            <p className="mt-8 text-center text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em] leading-relaxed">
+              Secure Student & Admin Access
+            </p>
+          </motion.div>
+        </div>
+        <Footer />
       </div>
     );
   }
 
   if (!selectedSubject) {
     return (
-      <div className="min-h-screen bg-[#F9F9F9] p-6 md:p-12">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-[#F9F9F9] flex flex-col">
+        <div className="flex-1 p-6 md:p-12">
+          <div className="max-w-6xl mx-auto">
           <header className="mb-12 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
             <div>
               <div className="flex items-center gap-4 mb-4">
@@ -964,6 +983,8 @@ function App() {
             )}
           </AnimatePresence>
         </div>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -972,8 +993,9 @@ function App() {
 
   if (!contentType || (contentType === 'notes' && !selectedModule) || (contentType === 'qa' && !selectedSeries)) {
     return (
-      <div className="min-h-screen bg-[#F9F9F9] p-6 md:p-12">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-[#F9F9F9] flex flex-col">
+        <div className="flex-1 p-6 md:p-12">
+          <div className="max-w-4xl mx-auto">
           <button 
             onClick={resetSelection}
             className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 font-medium mb-8 transition-colors"
@@ -1084,6 +1106,8 @@ function App() {
             )}
           </div>
         </div>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -1091,8 +1115,9 @@ function App() {
   // Uploading Soon View
   if (contentType === 'qa' && !isQAAvailable) {
     return (
-      <div className="min-h-screen bg-[#F9F9F9] flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-24 h-24 bg-zinc-100 rounded-full flex items-center justify-center mb-6">
+      <div className="min-h-screen bg-[#F9F9F9] flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-24 h-24 bg-zinc-100 rounded-full flex items-center justify-center mb-6">
           <Upload className="w-10 h-10 text-zinc-300 animate-pulse" />
         </div>
         <h2 className="text-3xl font-bold text-zinc-900 mb-2">Uploading Soon</h2>
@@ -1117,6 +1142,8 @@ function App() {
             </button>
           )}
         </div>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -1124,8 +1151,9 @@ function App() {
   // Notes View (Placeholder)
   if (contentType === 'notes') {
     return (
-      <div className="min-h-screen bg-[#F9F9F9] p-6 md:p-12">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-[#F9F9F9] flex flex-col">
+        <div className="flex-1 p-6 md:p-12">
+          <div className="max-w-4xl mx-auto">
           <button 
             onClick={() => setContentType(null)}
             className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 font-medium mb-8 transition-colors"
@@ -1140,6 +1168,8 @@ function App() {
             <p className="text-zinc-500">We are currently preparing the study notes for {currentSubject?.name} Module {selectedModule}.</p>
           </div>
         </div>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -1218,7 +1248,7 @@ function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="lg:pl-64 min-h-screen">
+      <main className="lg:pl-64 min-h-screen relative flex flex-col">
         {/* Header */}
         <header 
           className={`sticky top-0 z-40 bg-[#F9F9F9]/80 backdrop-blur-md border-b border-zinc-200/50 px-6 py-4 transition-transform duration-300 ${
@@ -1369,6 +1399,8 @@ function App() {
             )}
           </AnimatePresence>
         </div>
+
+        <Footer />
 
         {/* Add Question Modal */}
         <AnimatePresence>
