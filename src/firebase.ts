@@ -14,7 +14,7 @@ export const googleProvider = new GoogleAuthProvider();
 export interface UserProfile {
   email: string;
   name: string;
-  role: 'admin' | 'student';
+  role: 'admin' | 'student' | 'guest';
 }
 
 export interface UserProgress {

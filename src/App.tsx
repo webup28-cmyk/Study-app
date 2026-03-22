@@ -214,6 +214,7 @@ interface QuestionCardProps {
   onToggleStudied: () => void;
   onToggleFavorite: () => void;
   isAdmin: boolean;
+  isGuest?: boolean;
 }
 
 const QuestionCard = ({ 
@@ -226,7 +227,8 @@ const QuestionCard = ({
   isFavorite,
   onToggleStudied,
   onToggleFavorite,
-  isAdmin
+  isAdmin,
+  isGuest
 }: QuestionCardProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [localText, setLocalText] = useState(answer.text || '');
@@ -328,28 +330,30 @@ const QuestionCard = ({
           </h3>
         </div>
         
-        <div className="flex items-center gap-2 self-start md:self-start">
-          <button 
-            onClick={onToggleStudied}
-            className={cn(
-              "p-2 sm:p-3 rounded-2xl transition-all flex items-center gap-2 font-bold text-[10px] sm:text-xs uppercase tracking-widest",
-              isStudied ? "bg-emerald-100 text-emerald-600 shadow-inner" : "bg-zinc-50 text-zinc-400 hover:text-zinc-600"
-            )}
-          >
-            <CheckCircle className={cn("w-4 h-4 sm:w-5 sm:h-5", isStudied && "fill-current")} />
-            <span className="hidden sm:inline">{isStudied ? 'Studied' : 'Mark Studied'}</span>
-          </button>
-          <button 
-            onClick={onToggleFavorite}
-            className={cn(
-              "p-2 sm:p-3 rounded-2xl transition-all flex items-center gap-2 font-bold text-[10px] sm:text-xs uppercase tracking-widest",
-              isFavorite ? "bg-amber-100 text-amber-600 shadow-inner" : "bg-zinc-50 text-zinc-400 hover:text-zinc-600"
-            )}
-          >
-            <Star className={cn("w-4 h-4 sm:w-5 sm:h-5", isFavorite && "fill-current")} />
-            <span className="hidden sm:inline">{isFavorite ? 'Favorite' : 'Add Favorite'}</span>
-          </button>
-        </div>
+        {!isGuest && (
+          <div className="flex items-center gap-2 self-start md:self-start">
+            <button 
+              onClick={onToggleStudied}
+              className={cn(
+                "p-2 sm:p-3 rounded-2xl transition-all flex items-center gap-2 font-bold text-[10px] sm:text-xs uppercase tracking-widest",
+                isStudied ? "bg-emerald-100 text-emerald-600 shadow-inner" : "bg-zinc-50 text-zinc-400 hover:text-zinc-600"
+              )}
+            >
+              <CheckCircle className={cn("w-4 h-4 sm:w-5 sm:h-5", isStudied && "fill-current")} />
+              <span className="hidden sm:inline">{isStudied ? 'Studied' : 'Mark Studied'}</span>
+            </button>
+            <button 
+              onClick={onToggleFavorite}
+              className={cn(
+                "p-2 sm:p-3 rounded-2xl transition-all flex items-center gap-2 font-bold text-[10px] sm:text-xs uppercase tracking-widest",
+                isFavorite ? "bg-amber-100 text-amber-600 shadow-inner" : "bg-zinc-50 text-zinc-400 hover:text-zinc-600"
+              )}
+            >
+              <Star className={cn("w-4 h-4 sm:w-5 sm:h-5", isFavorite && "fill-current")} />
+              <span className="hidden sm:inline">{isFavorite ? 'Favorite' : 'Add Favorite'}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-6 sm:space-y-8">
@@ -560,7 +564,7 @@ function App() {
           setIsAuthReady(true);
         }
       } else {
-        setUser(null);
+        setUser(prev => prev?.role === 'guest' ? prev : null);
         setIsAuthReady(true);
       }
     });
@@ -627,6 +631,10 @@ function App() {
     if (!isAuthReady || !user) return;
     
     localStorage.setItem('qb-user', JSON.stringify(user));
+    if (user.role === 'guest') {
+      setUserProgress({ studied: [], favorites: [] });
+      return () => {};
+    }
     const unsub = getUserProgress(user.email, setUserProgress);
     return () => unsub();
   }, [user, isAuthReady]);
@@ -666,10 +674,21 @@ function App() {
     }
   };
 
+  const handleGuestLogin = () => {
+    setUser({
+      email: 'guest@studyhub.local',
+      name: 'Guest User',
+      role: 'guest'
+    });
+  };
+
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      if (user?.role !== 'guest') {
+        await signOut(auth);
+      }
       setUser(null);
+      localStorage.removeItem('qb-user');
       resetSelection();
     } catch (error) {
       console.error('Logout error:', error);
@@ -718,13 +737,13 @@ function App() {
   }, [getQuestionContextId]);
 
   const toggleStudied = useCallback(async (id: string) => {
-    if (!user) return;
+    if (!user || user.role === 'guest') return;
     const isStudied = userProgress.studied.includes(id);
     await toggleProgress(user.email, 'studied', id, !isStudied);
   }, [user, userProgress.studied]);
 
   const toggleFavorite = useCallback(async (id: string) => {
-    if (!user) return;
+    if (!user || user.role === 'guest') return;
     const isFavorite = userProgress.favorites.includes(id);
     await toggleProgress(user.email, 'favorites', id, !isFavorite);
   }, [user, userProgress.favorites]);
@@ -846,20 +865,30 @@ function App() {
               <p className="text-zinc-400 font-medium text-center">Sign in with your Google account to access your materials and track progress.</p>
             </div>
 
-            <button
-              onClick={handleLogin}
-              disabled={isLoginLoading}
-              className="w-full py-5 bg-zinc-900 text-white rounded-2xl font-bold text-sm uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200 disabled:opacity-50 flex items-center justify-center gap-3"
-            >
-              {isLoginLoading ? (
-                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <UserIcon className="w-5 h-5" />
-                  Sign in with Google
-                </>
-              )}
-            </button>
+            <div className="space-y-4">
+              <button
+                onClick={handleLogin}
+                disabled={isLoginLoading}
+                className="w-full py-5 bg-zinc-900 text-white rounded-2xl font-bold text-sm uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200 disabled:opacity-50 flex items-center justify-center gap-3"
+              >
+                {isLoginLoading ? (
+                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <UserIcon className="w-5 h-5" />
+                    Sign in with Google
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleGuestLogin}
+                disabled={isLoginLoading}
+                className="w-full py-5 bg-white text-zinc-900 border-2 border-zinc-200 rounded-2xl font-bold text-sm uppercase tracking-[0.2em] hover:bg-zinc-50 hover:border-zinc-300 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+              >
+                Continue as Guest
+              </button>
+            </div>
             
             <p className="mt-8 text-center text-[10px] text-zinc-400 font-black uppercase tracking-[0.2em] leading-relaxed">
               Secure Student & Admin Access
@@ -1375,6 +1404,7 @@ function App() {
                           onToggleStudied={() => toggleStudied(item.id)}
                           onToggleFavorite={() => toggleFavorite(item.id)}
                           isAdmin={user.role === 'admin'}
+                          isGuest={user.role === 'guest'}
                         />
                       </div>
                     );

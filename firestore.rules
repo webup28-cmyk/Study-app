@@ -117,7 +117,7 @@ service cloud.firestore {
     }
 
     match /subjects/{subjectId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow write: if isAdmin() && isValidSubject(request.resource.data);
     }
 
@@ -127,12 +127,12 @@ service cloud.firestore {
     }
 
     match /answers/{answerId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow write: if isAdmin() && isValidAnswer(request.resource.data);
     }
 
     match /questions/{questionId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow write: if isAdmin() && isValidQuestion(request.resource.data);
     }
   }
