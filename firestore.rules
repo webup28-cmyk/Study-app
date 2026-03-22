@@ -1,0 +1,139 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {email}
+    // Fields:
+    //   - email: string (required) - User's email address
+    //   - name: string (required) - User's full name
+    //   - role: string (required, enum: ['admin', 'student']) - User's role
+    //
+    // Collection: subjects
+    // Document ID: {subjectId}
+    // Fields:
+    //   - name: string (required) - Subject name
+    //   - icon: string (required) - Icon name
+    //   - color: string (required) - Tailwind color class
+    //   - deleted: bool (optional) - Soft delete flag
+    //
+    // Collection: user_progress
+    // Document ID: {email}
+    // Fields:
+    //   - studied: list<string> (optional) - List of question IDs marked as studied
+    //   - favorites: list<string> (optional) - List of question IDs marked as favorite
+    //
+    // Collection: answers
+    // Document ID: {answerId} (composite: subject-module-contentType-series-questionId)
+    // Fields:
+    //   - text: string (optional) - Answer text reference
+    //   - images: list<string> (optional) - List of base64 image strings
+    //
+    // Collection: questions
+    // Document ID: {questionId}
+    // Fields:
+    //   - text: string (required) - Question text
+    //   - subjectId: string (required) - Reference to subject
+    //   - series: string (required) - Series name/number
+    //   - part: string (required, enum: ['A', 'B']) - Part A or B
+    //   - number: number (required) - Question number
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == 'admin' ||
+        (request.auth.token.email == "bilalsabu437@gmail.com" && request.auth.token.email_verified == true) ||
+        (request.auth.token.email == "bilalsabu3@gmail.com")
+      );
+    }
+
+    function isOwner(email) {
+      return isAuthenticated() && request.auth.token.email == email;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['email', 'name', 'role']) &&
+             data.email is string &&
+             data.name is string && data.name.size() < 100 &&
+             data.role in ['admin', 'student'];
+    }
+
+    function isValidSubject(data) {
+      return hasRequiredFields(['name', 'icon', 'color']) &&
+             data.name is string && data.name.size() < 100 &&
+             data.icon is string &&
+             data.color is string;
+    }
+
+    function isValidProgress(data) {
+      return (!('studied' in data) || data.studied is list) &&
+             (!('favorites' in data) || data.favorites is list);
+    }
+
+    function isValidAnswer(data) {
+      return (!('text' in data) || (data.text is string && data.text.size() < 10000)) &&
+             (!('images' in data) || (data.images is list && data.images.size() <= 10));
+    }
+
+    function isValidQuestion(data) {
+      return hasRequiredFields(['text', 'subjectId', 'series', 'part', 'number']) &&
+             data.text is string && data.text.size() < 1000 &&
+             data.subjectId is string &&
+             data.series is string &&
+             data.part in ['A', 'B'] &&
+             data.number is number;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{email} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (isOwner(email) || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (isAdmin() || (isOwner(email) && request.resource.data.role == resource.data.role));
+    }
+
+    match /subjects/{subjectId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && isValidSubject(request.resource.data);
+    }
+
+    match /user_progress/{email} {
+      allow read: if isOwner(email) || isAdmin();
+      allow write: if isOwner(email) && isValidProgress(request.resource.data);
+    }
+
+    match /answers/{answerId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && isValidAnswer(request.resource.data);
+    }
+
+    match /questions/{questionId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && isValidQuestion(request.resource.data);
+    }
+  }
+}

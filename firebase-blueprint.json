@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user information and role.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "student"] }
+      },
+      "required": ["email", "name", "role"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "Stores subject metadata.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "icon": { "type": "string" },
+        "color": { "type": "string" }
+      },
+      "required": ["name", "icon", "color"]
+    },
+    "UserProgress": {
+      "title": "User Progress",
+      "description": "Stores studied and favorite questions for a user.",
+      "type": "object",
+      "properties": {
+        "studied": { "type": "array", "items": { "type": "string" } },
+        "favorites": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "Answer": {
+      "title": "Answer",
+      "description": "Stores answer text and images for a question.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{email}": {
+      "schema": "User",
+      "description": "User profiles indexed by email."
+    },
+    "/subjects/{subjectId}": {
+      "schema": "Subject",
+      "description": "Subject definitions."
+    },
+    "/user_progress/{email}": {
+      "schema": "UserProgress",
+      "description": "Progress tracking for each user."
+    },
+    "/answers/{answerId}": {
+      "schema": "Answer",
+      "description": "Answers for questions, ID is a composite of subject, module, series, and question ID."
+    }
+  }
+}
