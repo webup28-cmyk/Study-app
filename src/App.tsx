@@ -102,7 +102,7 @@ const MODULES = [
 ];
 const CONTENT_TYPES = [
   { id: 'qa', name: 'Question Bank', icon: ClipboardList },
-  { id: 'notes', name: 'Study Notes', icon: FileText },
+  { id: 'notes', name: 'Study Materials', icon: FileText },
 ];
 const SERIES = ['1', '2', 'Model'];
 
@@ -1049,7 +1049,7 @@ function App() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-zinc-900 mb-1">{subject.name}</h3>
-                    <p className="text-sm text-zinc-500">4 Modules • Q&A & Notes</p>
+                    <p className="text-sm text-zinc-500">4 Modules • Q&A & Materials</p>
                   </div>
                 </motion.div>
               );
@@ -1283,14 +1283,14 @@ function App() {
                 <h1 className="text-3xl font-black text-zinc-900 tracking-tight mb-2">
                   {currentSubject?.name}
                 </h1>
-                <p className="text-zinc-500 font-medium">Module {selectedModule} Study Notes</p>
+                <p className="text-zinc-500 font-medium">Module {selectedModule} Study Materials</p>
               </div>
               {user.role === 'admin' && (
                 <button
                   onClick={() => setIsAddingNote(true)}
                   className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200"
                 >
-                  <Plus className="w-4 h-4" /> Add Note
+                  <Plus className="w-4 h-4" /> Add Material
                 </button>
               )}
             </div>
@@ -1339,8 +1339,8 @@ function App() {
             ) : (
               <div className="bg-white border border-zinc-200 rounded-3xl p-8 sm:p-12 text-center">
                 <FileText className="w-16 h-16 text-zinc-200 mx-auto mb-6" />
-                <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mb-2">No Notes Yet</h2>
-                <p className="text-zinc-500">We are currently preparing the study notes for {currentSubject?.name} Module {selectedModule}.</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mb-2">No Materials Yet</h2>
+                <p className="text-zinc-500">We are currently preparing the study materials for {currentSubject?.name} Module {selectedModule}.</p>
               </div>
             )}
           </div>
@@ -1357,7 +1357,7 @@ function App() {
                 className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl"
               >
                 <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Add New Note</h2>
+                  <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Add New Material</h2>
                   <button onClick={() => setIsAddingNote(false)} className="p-2 hover:bg-zinc-100 rounded-xl transition-colors">
                     <X className="w-5 h-5 text-zinc-400" />
                   </button>
@@ -1365,7 +1365,7 @@ function App() {
 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Note Name</label>
+                    <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Material Name</label>
                     <input
                       type="text"
                       value={newNoteName}
@@ -1376,7 +1376,7 @@ function App() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Note Type</label>
+                    <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] mb-3">Material Type</label>
                     <div className="grid grid-cols-3 gap-3">
                       <button
                         onClick={() => {
@@ -1465,7 +1465,7 @@ function App() {
                     disabled={!newNoteName.trim() || !newNoteUrl.trim() || isNoteUploading}
                     className="w-full py-5 bg-zinc-900 text-white rounded-2xl font-bold text-sm uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200 disabled:opacity-50 mt-4"
                   >
-                    Add Note
+                    Add Material
                   </button>
                 </div>
               </motion.div>
@@ -1494,8 +1494,8 @@ function App() {
           
           <div className="bg-white border border-zinc-200 rounded-3xl p-8 sm:p-12 text-center">
             <FileText className="w-16 h-16 text-zinc-200 mx-auto mb-6" />
-            <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mb-2">Notes Coming Soon</h2>
-            <p className="text-zinc-500">We are currently preparing the study notes for {currentSubject?.name} Module {selectedModule}.</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 mb-2">Materials Coming Soon</h2>
+            <p className="text-zinc-500">We are currently preparing the study materials for {currentSubject?.name} Module {selectedModule}.</p>
           </div>
         </div>
         </div>
