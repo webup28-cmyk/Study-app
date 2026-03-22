@@ -581,6 +581,7 @@ function App() {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [isAddingSubject, setIsAddingSubject] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState<string | null>(null);
+  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [newQuestionText, setNewQuestionText] = useState('');
   const [newSubjectName, setNewSubjectName] = useState('');
@@ -732,12 +733,15 @@ function App() {
   const removeSubject = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setSubjectToDelete(id);
+    setDeleteConfirmationInput('');
   };
 
   const confirmDeleteSubject = async () => {
-    if (subjectToDelete) {
-      await removeSubjectFromDb(subjectToDelete);
+    const subject = subjects.find(s => s.id === subjectToDelete);
+    if (subject && deleteConfirmationInput === subject.name) {
+      await removeSubjectFromDb(subjectToDelete!);
       setSubjectToDelete(null);
+      setDeleteConfirmationInput('');
     }
   };
 
@@ -1111,24 +1115,46 @@ function App() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center"
+                  className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl"
                 >
                   <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
                     <Trash2 className="w-8 h-8 text-rose-500" />
                   </div>
-                  <h2 className="text-2xl font-bold text-zinc-900 mb-2">Remove Subject?</h2>
-                  <p className="text-zinc-500 mb-8">This will permanently delete this subject and all its data. This action cannot be undone.</p>
+                  <h2 className="text-2xl font-bold text-zinc-900 mb-2 text-center">Remove Subject?</h2>
+                  <p className="text-zinc-500 mb-6 text-center">
+                    To confirm, please type <span className="font-black text-zinc-900">"{subjects.find(s => s.id === subjectToDelete)?.name}"</span> below.
+                  </p>
+                  
+                  <div className="mb-8">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={deleteConfirmationInput}
+                      onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+                      placeholder="Type subject name..."
+                      className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent outline-none transition-all font-bold"
+                      onKeyDown={(e) => e.key === 'Enter' && deleteConfirmationInput === subjects.find(s => s.id === subjectToDelete)?.name && confirmDeleteSubject()}
+                    />
+                  </div>
                   
                   <div className="flex gap-3">
                     <button
-                      onClick={() => setSubjectToDelete(null)}
+                      onClick={() => {
+                        setSubjectToDelete(null);
+                        setDeleteConfirmationInput('');
+                      }}
                       className="flex-1 p-4 rounded-xl font-bold text-zinc-500 hover:bg-zinc-100 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={confirmDeleteSubject}
-                      className="flex-1 p-4 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition-colors shadow-lg shadow-rose-200"
+                      disabled={deleteConfirmationInput !== subjects.find(s => s.id === subjectToDelete)?.name}
+                      className={`flex-1 p-4 rounded-xl font-bold transition-all shadow-lg ${
+                        deleteConfirmationInput === subjects.find(s => s.id === subjectToDelete)?.name
+                          ? 'bg-rose-500 text-white hover:bg-rose-600 shadow-rose-200'
+                          : 'bg-zinc-100 text-zinc-400 cursor-not-allowed shadow-none'
+                      }`}
                     >
                       Remove
                     </button>
