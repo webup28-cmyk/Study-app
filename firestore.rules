@@ -134,7 +134,8 @@ service cloud.firestore {
 
     match /subjects/{subjectId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidSubject(request.resource.data);
+      allow create, update: if isAdmin() && isValidSubject(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     match /user_progress/{email} {
@@ -144,17 +145,19 @@ service cloud.firestore {
 
     match /answers/{answerId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidAnswer(request.resource.data);
+      allow create, update: if isAdmin() && isValidAnswer(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     match /questions/{questionId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidQuestion(request.resource.data);
+      allow create, update: if isAdmin() && isValidQuestion(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     match /notes/{noteId} {
       allow read: if true;
-      allow write: if isAdmin() && isValidNote(request.resource.data);
+      allow create, update: if isAdmin() && isValidNote(request.resource.data);
       allow delete: if isAdmin();
     }
   }

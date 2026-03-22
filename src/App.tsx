@@ -96,7 +96,7 @@ const ICON_MAP: Record<string, any> = {
 
 const MODULES = [
   { id: 1, name: 'Module 1' },
-  { id: 2, name: 'Module 2', link: 'https://docs.google.com/presentation/d/1P8MDwFChI-fVXE5Kt0lH5yy_boxoWCla/edit?usp=drivesdk&ouid=116982004885539502522&rtpof=true&sd=true', ready: true },
+  { id: 2, name: 'Module 2' },
   { id: 3, name: 'Module 3' },
   { id: 4, name: 'Module 4' },
 ];
@@ -303,7 +303,7 @@ const QuestionCard = ({
         onUpdate(id, { images: newImages });
       } catch (err) {
         console.error("Failed to process images", err);
-        alert("Failed to process one or more images. Please try again with smaller files.");
+        console.error("Failed to process one or more images. Please try again with smaller files.");
       } finally {
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -580,6 +580,7 @@ function App() {
 
   const [subjects, setSubjects] = useState<any[]>([]);
   const [isAddingSubject, setIsAddingSubject] = useState(false);
+  const [subjectToDelete, setSubjectToDelete] = useState<string | null>(null);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [newQuestionText, setNewQuestionText] = useState('');
   const [newSubjectName, setNewSubjectName] = useState('');
@@ -665,7 +666,8 @@ function App() {
       setSubjects(fetchedSubjects);
       
       // Seed "Foundation of Computing" if it doesn't exist and user is admin
-      if (user?.role === 'admin' && fetchedSubjects.length === 0) {
+      const hasFOC = fetchedSubjects.some(s => s.id === 'foundation-of-computing' || s.name.toLowerCase() === 'foundation of computing');
+      if (user?.role === 'admin' && !hasFOC) {
         const initialSubject = {
           id: 'foundation-of-computing',
           name: 'Foundation of Computing',
@@ -684,7 +686,7 @@ function App() {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error('Login error:', error);
-      alert('Failed to sign in with Google. Please try again.');
+      console.error('Failed to sign in with Google. Please try again.');
     } finally {
       setIsLoginLoading(false);
     }
@@ -729,8 +731,13 @@ function App() {
 
   const removeSubject = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (confirm('Are you sure you want to remove this subject?')) {
-      await removeSubjectFromDb(id);
+    setSubjectToDelete(id);
+  };
+
+  const confirmDeleteSubject = async () => {
+    if (subjectToDelete) {
+      await removeSubjectFromDb(subjectToDelete);
+      setSubjectToDelete(null);
     }
   };
 
@@ -864,7 +871,7 @@ function App() {
     if (!file) return;
 
     if (file.size > 1024 * 1024) {
-      alert('File size exceeds 1MB. Please use a Drive link instead.');
+      console.error('File size exceeds 1MB. Please use a Drive link instead.');
       return;
     }
 
@@ -1039,7 +1046,7 @@ function App() {
                   {user.role === 'admin' && (
                     <button
                       onClick={(e) => removeSubject(e, subject.id)}
-                      className="absolute top-4 right-4 p-2 text-zinc-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all z-10"
+                      className="absolute top-4 right-4 p-2 text-zinc-300 hover:text-rose-500 transition-all z-10"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -1093,6 +1100,38 @@ function App() {
                         Add Subject
                       </button>
                     </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
+            {subjectToDelete && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zinc-900/40 backdrop-blur-sm">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center"
+                >
+                  <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <Trash2 className="w-8 h-8 text-rose-500" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-zinc-900 mb-2">Remove Subject?</h2>
+                  <p className="text-zinc-500 mb-8">This will permanently delete this subject and all its data. This action cannot be undone.</p>
+                  
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setSubjectToDelete(null)}
+                      className="flex-1 p-4 rounded-xl font-bold text-zinc-500 hover:bg-zinc-100 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={confirmDeleteSubject}
+                      className="flex-1 p-4 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition-colors shadow-lg shadow-rose-200"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </motion.div>
               </div>
@@ -1199,9 +1238,6 @@ function App() {
                       key={m.id}
                       onClick={() => {
                         setSelectedModule(m.id);
-                        if (isFOC && m.id === 2 && m.link) {
-                          window.open(m.link, '_blank');
-                        }
                       }}
                       className={`p-4 sm:p-6 rounded-2xl border-2 transition-all font-bold text-lg relative ${
                         selectedModule === m.id 
@@ -1210,7 +1246,7 @@ function App() {
                       }`}
                     >
                       {m.name}
-                      {(modulesWithNotes.has(m.id.toString()) || (isFOC && m.id === 2 && m.ready)) && (
+                      {modulesWithNotes.has(m.id.toString()) && (
                         <div className="absolute -top-3 -right-3 px-2 py-1 bg-emerald-600 text-white text-[8px] font-black uppercase tracking-widest rounded-lg shadow-lg flex items-center gap-1">
                           Ready
                         </div>
