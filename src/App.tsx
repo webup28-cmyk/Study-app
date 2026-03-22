@@ -173,6 +173,32 @@ const PART_B_QUESTIONS = [
   "Convert the following: a. (48.46)10 to Binary b. (1000.11)2 to Decimal c. (2C9B)16 to Binary d. (257)8 to hexadecimal"
 ];
 
+const PHYSICS_PART_A_QUESTIONS = [
+  "Band diagrams of n-type & p-type",
+  "Variation of intrinsic carrier concentration with temperature",
+  "Prove that Fermi level in an intrinsic semiconductor lies in the middle of the band gap",
+  "Distinguish between Zener diode & pn junction diode",
+  "Any 3 applications of LED",
+  "Any 3 advantages of solar cell",
+  "Explain the formation of p-type semiconductor",
+  "Working of LED",
+  "Any 3 applications of photo detector"
+];
+
+const PHYSICS_PART_B_QUESTIONS = [
+  { module: "Module 3", text: "Ideal diode equation derivation" },
+  { module: "Module 3", text: "Thermal equilibrium concentration of electrons in the conduction band" },
+  { module: "Module 3", text: "Thermal equilibrium concentration of holes in the valence band" },
+  { module: "Module 3", text: "Describe the formation and working in forward biased and reverse biased conditions of pn junction diode" },
+  { module: "Module 4", text: "Draw and explain V–I characteristics of solar cell and stringing of solar cell" },
+  { module: "Module 4", text: "Discuss the V–I characteristics of Zener diode" },
+  { module: "Module 4", text: "Construction and working of PN photodiode and junction photodiode" },
+  { module: "Module 4", text: "Construction and working of half-wave rectifier and its efficiency" },
+  { module: "Module 4", text: "Construction and working of full-wave rectifier and its efficiency" },
+  { module: "Module 4", text: "Illustrate the working of tunnel diode and V–I characteristics" },
+  { module: "Module 4", text: "Construction and working of semiconductor diode laser" }
+];
+
 // --- Types ---
 
 // --- Components ---
@@ -574,6 +600,14 @@ function App() {
            name.includes('foc');
   }, [selectedSubject, subjects]);
 
+  const isPhysics = useMemo(() => {
+    if (!selectedSubject) return false;
+    const subject = subjects.find(s => s.id === selectedSubject);
+    const name = subject?.name.toLowerCase() || '';
+    const id = selectedSubject.toLowerCase();
+    return id.includes('physics') || name.includes('physics');
+  }, [selectedSubject, subjects]);
+
   useEffect(() => {
     if (!isAuthReady || !user) return;
     
@@ -703,6 +737,10 @@ function App() {
         const qnsA = PART_A_QUESTIONS.map((q, i) => ({ id: `A-${i}`, question: q, number: i + 1 }));
         const qnsB = PART_B_QUESTIONS.map((q, i) => ({ id: `B-${i}`, question: q, number: i + 1 }));
         setQuestions(activeTab === 'A' ? qnsA : qnsB);
+      } else if (isPhysics && selectedSeries === '2') {
+        const qnsA = PHYSICS_PART_A_QUESTIONS.map((q, i) => ({ id: `PHYSICS-A-${i}`, question: q, number: i + 1 }));
+        const qnsB = PHYSICS_PART_B_QUESTIONS.map((q, i) => ({ id: `PHYSICS-B-${i}`, question: q.text, number: i + 1, module: q.module }));
+        setQuestions(activeTab === 'A' ? qnsA : qnsB);
       } else {
         setQuestions([]);
       }
@@ -710,7 +748,7 @@ function App() {
     } else {
       setQuestions([]);
     }
-  }, [selectedSubject, activeTab, selectedSeries, subjects, isFOC]);
+  }, [selectedSubject, activeTab, selectedSeries, subjects, isFOC, isPhysics]);
 
   const allQuestions = useMemo(() => {
     const merged = [...questions, ...customQuestions];
@@ -930,7 +968,7 @@ function App() {
     );
   }
 
-  const isQAAvailable = (isFOC && selectedSeries === '2') || customQuestions.length > 0;
+  const isQAAvailable = (isFOC && selectedSeries === '2') || (isPhysics && selectedSeries === '2') || customQuestions.length > 0;
 
   if (!contentType || (contentType === 'notes' && !selectedModule) || (contentType === 'qa' && !selectedSeries)) {
     return (
@@ -998,10 +1036,10 @@ function App() {
                         selectedSeries === s 
                           ? 'bg-zinc-900 border-zinc-900 text-white shadow-lg' 
                           : 'bg-white border-zinc-100 text-zinc-400 hover:border-zinc-300 hover:text-zinc-600'
-                      } ${isFOC && s === '2' ? 'border-indigo-500/50 shadow-xl shadow-indigo-500/5 ring-2 ring-indigo-500/20 scale-105' : ''}`}
+                      } ${(isFOC || isPhysics) && s === '2' ? 'border-indigo-500/50 shadow-xl shadow-indigo-500/5 ring-2 ring-indigo-500/20 scale-105' : ''}`}
                     >
                       {s === 'Model' ? 'Model' : `Series ${s}`}
-                      {isFOC && s === '2' && (
+                      {(isFOC || isPhysics) && s === '2' && (
                         <div className="absolute -top-3 -right-3 px-2 py-1 bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest rounded-lg shadow-lg flex items-center gap-1 animate-bounce">
                           <CheckCircle2 className="w-2.5 h-2.5" />
                           Ready
@@ -1107,6 +1145,19 @@ function App() {
   }
 
   // Q&A View (The original app logic)
+  const getPartCount = (part: 'A' | 'B') => {
+    if (isFOC && selectedSeries === '2') {
+      return part === 'A' ? PART_A_QUESTIONS.length : PART_B_QUESTIONS.length;
+    }
+    if (isPhysics && selectedSeries === '2') {
+      return part === 'A' ? PHYSICS_PART_A_QUESTIONS.length : PHYSICS_PART_B_QUESTIONS.length;
+    }
+    if (activeTab === part) {
+      return customQuestions.length;
+    }
+    return '?';
+  };
+
   return (
     <div className="min-h-screen bg-[#F9F9F9] text-zinc-900 font-sans selection:bg-zinc-900 selection:text-white">
       {/* Sidebar / Navigation */}
@@ -1149,7 +1200,7 @@ function App() {
               <Layout className="w-4 h-4" />
               <span className="font-medium">Part A</span>
             </div>
-            <span className="text-xs opacity-60">{PART_A_QUESTIONS.length}</span>
+            <span className="text-xs opacity-60">{getPartCount('A')}</span>
           </button>
           <button
             onClick={() => setActiveTab('B')}
@@ -1161,7 +1212,7 @@ function App() {
               <FileText className="w-4 h-4" />
               <span className="font-medium">Part B</span>
             </div>
-            <span className="text-xs opacity-60">{PART_B_QUESTIONS.length}</span>
+            <span className="text-xs opacity-60">{getPartCount('B')}</span>
           </button>
         </nav>
       </aside>
@@ -1240,7 +1291,7 @@ function App() {
 
         {/* Questions List */}
         <div className="max-w-4xl mx-auto p-6">
-          {user.role === 'admin' && !isFOC && (
+          {user.role === 'admin' && !(isFOC && selectedSeries === '2') && !(isPhysics && selectedSeries === '2') && (
             <div className="mb-8 flex justify-center">
               <button
                 onClick={() => setIsAddingQuestion(true)}
@@ -1253,34 +1304,53 @@ function App() {
           )}
           <AnimatePresence mode="popLayout">
             {filteredQuestions.length > 0 ? (
-              filteredQuestions.map((item) => {
-                const contextId = getQuestionContextId(item.id);
-                return (
-                  <div key={item.id} className="relative group">
-                    {user.role === 'admin' && item.isCustom && (
-                      <button
-                        onClick={() => handleRemoveQuestion(item.id)}
-                        className="absolute right-2 top-2 sm:-right-4 sm:top-6 p-2 text-zinc-300 hover:text-rose-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all z-10 bg-white shadow-md rounded-xl border border-zinc-100"
-                        title="Delete Question"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                    <QuestionCard
-                      id={item.id}
-                      number={item.number}
-                      question={item.question}
-                      answer={currentAnswers[contextId] || { text: '', images: [] }}
-                      onUpdate={handleUpdateAnswer}
-                      isStudied={(userProgress.studied || []).includes(item.id)}
-                      isFavorite={(userProgress.favorites || []).includes(item.id)}
-                      onToggleStudied={() => toggleStudied(item.id)}
-                      onToggleFavorite={() => toggleFavorite(item.id)}
-                      isAdmin={user.role === 'admin'}
-                    />
-                  </div>
-                );
-              })
+              Object.entries(
+                filteredQuestions.reduce((acc, item) => {
+                  const mod = item.module || 'default';
+                  if (!acc[mod]) acc[mod] = [];
+                  acc[mod].push(item);
+                  return acc;
+                }, {} as Record<string, any[]>)
+              ).map(([mod, items]: [string, any[]]) => (
+                <div key={mod} className="mb-8">
+                  {mod !== 'default' && (
+                    <h2 className="text-2xl font-black text-zinc-900 mb-6 flex items-center gap-3 ml-2">
+                      <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+                        <Layers className="w-5 h-5" />
+                      </div>
+                      {mod}
+                    </h2>
+                  )}
+                  {items.map((item) => {
+                    const contextId = getQuestionContextId(item.id);
+                    return (
+                      <div key={item.id} className="relative group">
+                        {user.role === 'admin' && item.isCustom && (
+                          <button
+                            onClick={() => handleRemoveQuestion(item.id)}
+                            className="absolute right-2 top-2 sm:-right-4 sm:top-6 p-2 text-zinc-300 hover:text-rose-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all z-10 bg-white shadow-md rounded-xl border border-zinc-100"
+                            title="Delete Question"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        <QuestionCard
+                          id={item.id}
+                          number={item.number}
+                          question={item.question}
+                          answer={currentAnswers[contextId] || { text: '', images: [] }}
+                          onUpdate={handleUpdateAnswer}
+                          isStudied={(userProgress.studied || []).includes(item.id)}
+                          isFavorite={(userProgress.favorites || []).includes(item.id)}
+                          onToggleStudied={() => toggleStudied(item.id)}
+                          onToggleFavorite={() => toggleFavorite(item.id)}
+                          isAdmin={user.role === 'admin'}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ))
             ) : (
               <motion.div 
                 initial={{ opacity: 0 }}
