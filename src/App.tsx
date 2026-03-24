@@ -206,6 +206,21 @@ const PHYSICS_PART_B_QUESTIONS = [
   { module: "Module 4", text: "Construction and working of semiconductor diode laser" }
 ];
 
+const IPR_PART_A_QUESTIONS = [
+  "Explain the components of competitor profiling and why it is important for businesses.",
+  "Using the example of a luxury car brand, apply demographic and psycho graphic segmentation to target customers.",
+  "Propose a differentiation strategy for a tech product facing high-priced competitors like smartphones.",
+  "Suggest risk management strategies for a startup's financial projections.",
+  "Describe the key elements of operations plans.",
+  "Outline an operations plan for an online clothing brand."
+];
+
+const IPR_PART_B_QUESTIONS = [
+  "a) Explain the components of competitor profiling and why it is important for businesses\n\nb) Analyze how you would use SWOT analysis on a competitor like \"Brew Bean\" coffee shop to position your own family-friendly cafe\n\nDevelop a market entry strategy for an eco-friendly clothing brand, applying customer profiling and validation steps.\n\nc) A food-tech company plans to launch a subscription-based meal delivery service.\n(a) Describe how they can profile their target customers.\n(b) Suggest ways to validate their market assumptions.\n(c) Recommend strategies for effective communication and messaging.",
+  "a) Prepare a sample business plan outline for an eco-friendly product, integrating market analysis, financial projections, and risk management.\n\nb) Discuss the essential components of a business plan. How do marketing and operational strategies contribute to the long-term sustainability of a business?",
+  "a) A renewable energy company is planning to launch a wind energy solution for urban use.\n(a) Suggest a marketing strategy for the product.\n(b) Recommend a financial projection for their business plan.\n(c) Describe a feedback loop for improving the product.\n\nb) A startup is launching a food delivery app focusing on local cuisine. Develop a business plan framework including market analysis, marketing strategy, and risk mitigation approaches"
+];
+
 // --- Types ---
 
 // --- Components ---
@@ -645,6 +660,14 @@ function App() {
     return id.includes('physics') || name.includes('physics');
   }, [selectedSubject, subjects]);
 
+  const isIPR = useMemo(() => {
+    if (!selectedSubject) return false;
+    const subject = subjects.find(s => s.id === selectedSubject);
+    const name = subject?.name.toLowerCase() || '';
+    const id = selectedSubject.toLowerCase();
+    return id.includes('ipr') || name.includes('ipr');
+  }, [selectedSubject, subjects]);
+
   useEffect(() => {
     if (!isAuthReady || !user) return;
     
@@ -674,6 +697,18 @@ function App() {
           name: 'Foundation of Computing',
           icon: 'BookOpen',
           color: 'bg-blue-500'
+        };
+        addSubjectToDb(initialSubject);
+      }
+
+      // Seed IPR if it doesn't exist and user is admin
+      const hasIPR = fetchedSubjects.some(s => s.id === 'ipr' || s.name.toLowerCase() === 'ipr');
+      if (user?.role === 'admin' && !hasIPR) {
+        const initialSubject = {
+          id: 'ipr',
+          name: 'IPR',
+          icon: 'Shield',
+          color: 'bg-rose-500'
         };
         addSubjectToDb(initialSubject);
       }
@@ -802,6 +837,10 @@ function App() {
         const qnsA = PHYSICS_PART_A_QUESTIONS.map((q, i) => ({ id: `PHYSICS-A-${i}`, question: q, number: i + 1 }));
         const qnsB = PHYSICS_PART_B_QUESTIONS.map((q, i) => ({ id: `PHYSICS-B-${i}`, question: q.text, number: i + 1, module: q.module }));
         setQuestions(activeTab === 'A' ? qnsA : qnsB);
+      } else if (isIPR && selectedSeries === '2') {
+        const qnsA = IPR_PART_A_QUESTIONS.map((q, i) => ({ id: `IPR-A-${i}`, question: q, number: i + 1 }));
+        const qnsB = IPR_PART_B_QUESTIONS.map((q, i) => ({ id: `IPR-B-${i}`, question: q, number: i + 7 }));
+        setQuestions(activeTab === 'A' ? qnsA : qnsB);
       } else {
         setQuestions([]);
       }
@@ -809,7 +848,7 @@ function App() {
     } else {
       setQuestions([]);
     }
-  }, [selectedSubject, activeTab, selectedSeries, subjects, isFOC, isPhysics]);
+  }, [selectedSubject, activeTab, selectedSeries, subjects, isFOC, isPhysics, isIPR]);
 
   const allQuestions = useMemo(() => {
     const merged = [...questions, ...customQuestions];
@@ -1170,7 +1209,7 @@ function App() {
     );
   }
 
-  const isQAAvailable = (isFOC && selectedSeries === '2') || (isPhysics && selectedSeries === '2') || customQuestions.length > 0;
+  const isQAAvailable = (isFOC && selectedSeries === '2') || (isPhysics && selectedSeries === '2') || (isIPR && selectedSeries === '2') || customQuestions.length > 0;
 
   if (!contentType || (contentType === 'notes' && !selectedModule) || (contentType === 'qa' && !selectedSeries)) {
     return (
@@ -1239,10 +1278,10 @@ function App() {
                         selectedSeries === s 
                           ? 'bg-zinc-900 border-zinc-900 text-white shadow-lg' 
                           : 'bg-white border-zinc-100 text-zinc-400 hover:border-zinc-300 hover:text-zinc-600'
-                      } ${(isFOC || isPhysics) && s === '2' ? 'border-indigo-500/50 shadow-xl shadow-indigo-500/5 ring-2 ring-indigo-500/20 scale-105' : ''}`}
+                      } ${(isFOC || isPhysics || isIPR) && s === '2' ? 'border-indigo-500/50 shadow-xl shadow-indigo-500/5 ring-2 ring-indigo-500/20 scale-105' : ''}`}
                     >
                       {s === 'Model' ? 'Model' : `Series ${s}`}
-                      {(isFOC || isPhysics) && s === '2' && (
+                      {(isFOC || isPhysics || isIPR) && s === '2' && (
                         <div className="absolute -top-3 -right-3 px-2 py-1 bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest rounded-lg shadow-lg flex items-center gap-1 animate-bounce">
                           <CheckCircle2 className="w-2.5 h-2.5" />
                           Ready
@@ -1713,7 +1752,7 @@ function App() {
 
         {/* Questions List */}
         <div className="max-w-4xl mx-auto p-6">
-          {user.role === 'admin' && !(isFOC && selectedSeries === '2') && !(isPhysics && selectedSeries === '2') && (
+          {user.role === 'admin' && !(isFOC && selectedSeries === '2') && !(isPhysics && selectedSeries === '2') && !(isIPR && selectedSeries === '2') && (
             <div className="mb-8 flex justify-center">
               <button
                 onClick={() => setIsAddingQuestion(true)}
